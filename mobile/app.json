@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "LeaveANote",
+    "slug": "leaveanote-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "leaveanote",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4F46E5"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.leaveanote.mobile",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "LeaveANote needs access to your photo library to attach images and videos to your notes.",
+        "NSCameraUsageDescription": "LeaveANote needs camera access to take photos for your notes."
+      }
+    },
+    "android": {
+      "package": "com.leaveanote.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#4F46E5",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-sharing",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LeaveANote needs access to your photos to attach media to notes."
+        }
+      ]
+    ],
+    "extra": {
+      "firebaseApiKey": "",
+      "firebaseAuthDomain": "",
+      "firebaseProjectId": "",
+      "firebaseStorageBucket": "",
+      "firebaseMessagingSenderId": "",
+      "firebaseAppId": ""
+    }
+  }
+}
