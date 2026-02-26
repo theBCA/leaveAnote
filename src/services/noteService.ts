@@ -1,5 +1,4 @@
 import { 
-  collection, 
   doc, 
   setDoc, 
   getDoc, 
@@ -7,11 +6,11 @@ import {
   deleteDoc,
   onSnapshot,
   Timestamp,
-  Unsubscribe
+  type Unsubscribe
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { db, storage } from '../config/firebase';
-import { NoteData, CreateNoteInput, NoteStatus } from '../types';
+import type { NoteData, CreateNoteInput, NoteStatus } from '../types';
 import { generateUniqueId, generateToken } from '../utils/helpers';
 import { encryptMessage, decryptMessage } from '../utils/encryption';
 
@@ -94,8 +93,7 @@ export function subscribeToNote(
 
 export async function updateNoteStatus(
   noteId: string, 
-  status: NoteStatus,
-  senderToken?: string
+  status: NoteStatus
 ): Promise<void> {
   const updateData: Partial<NoteData> = { status };
   

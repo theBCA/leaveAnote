@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import CreateNoteForm from '../components/CreateNoteForm';
@@ -9,7 +9,6 @@ import type { CreateNoteInput } from '../types';
 export default function CreateNotePage() {
   const location = useLocation();
   const isReply = location.state?.isReply || false;
-  const replyToNoteId = location.state?.replyTo;
   
   const [loading, setLoading] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);

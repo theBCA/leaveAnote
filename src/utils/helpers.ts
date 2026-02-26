@@ -1,4 +1,4 @@
-import { CountdownTime } from '../types';
+import type { CountdownTime } from '../types';
 
 export function calculateCountdown(unlockTime: Date): CountdownTime {
   const now = new Date().getTime();
@@ -89,8 +89,7 @@ export async function shareLink(url: string, title: string = 'LeaveANote') {
         url,
       });
       return true;
-    } catch (error) {
-      // User cancelled or share failed
+    } catch {
       return false;
     }
   }

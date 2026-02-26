@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CountdownTime } from '../types';
+import type { CountdownTime } from '../types';
 import { calculateCountdown } from '../utils/helpers';
 
 export function useCountdown(targetDate: Date | undefined) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NoteData } from '../types';
+import type { NoteData } from '../types';
 import { subscribeToNote } from '../services/noteService';
 
 export function useNote(noteId: string | undefined) {
