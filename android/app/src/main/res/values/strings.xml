@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LeaveANote</string>
+    <string name="title_activity_main">LeaveANote</string>
+    <string name="package_name">com.leaveanote.app</string>
+    <string name="custom_url_scheme">com.leaveanote.app</string>
+</resources>
