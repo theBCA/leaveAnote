@@ -9,7 +9,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
+import { db, storage, isFirebaseConfigured } from '../config/firebase';
 import type { NoteData, CreateNoteInput, NoteStatus, PickedFile } from '../types';
 import { generateUniqueId, generateToken } from '../utils/helpers';
 import { encryptMessage, decryptMessage } from '../utils/encryption';
@@ -25,6 +25,12 @@ export async function createNote(input: CreateNoteInput): Promise<{
   noteId: string;
   senderToken: string;
 }> {
+  if (!isFirebaseConfigured) {
+    throw new Error(
+      'Firebase is not configured. Add your Firebase credentials in app.json extra or EXPO_PUBLIC_FIREBASE_* env vars.',
+    );
+  }
+
   const noteId = generateUniqueId();
   const senderToken = generateToken();
 
@@ -55,6 +61,10 @@ export async function createNote(input: CreateNoteInput): Promise<{
 }
 
 export async function getNote(noteId: string): Promise<NoteData | null> {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase is not configured.');
+  }
+
   const noteDoc = await getDoc(doc(db, NOTES_COLLECTION, noteId));
 
   if (!noteDoc.exists()) {
@@ -75,6 +85,11 @@ export function subscribeToNote(
   noteId: string,
   callback: (note: NoteData | null) => void,
 ): Unsubscribe {
+  if (!isFirebaseConfigured) {
+    callback(null);
+    return () => {};
+  }
+
   return onSnapshot(doc(db, NOTES_COLLECTION, noteId), async (snapshot) => {
     if (!snapshot.exists()) {
       callback(null);

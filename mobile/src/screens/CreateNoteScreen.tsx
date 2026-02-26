@@ -112,24 +112,29 @@ export default function CreateNoteScreen({ route }: Props) {
     }
 
     setLoading(true);
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), 15000),
+    );
+
     try {
-      const { noteId, senderToken } = await createNote({
-        message,
-        unlockTime,
-        files,
-        timezone,
-      });
+      const result = await Promise.race([
+        createNote({ message, unlockTime, files, timezone }),
+        timeout,
+      ]);
 
       const baseUrl = 'https://leaveanote.web.app';
       setShareLinks({
-        recipientLink: `${baseUrl}/note/${noteId}`,
-        senderLink: `${baseUrl}/manage/${noteId}/${senderToken}`,
-        noteId,
+        recipientLink: `${baseUrl}/note/${result.noteId}`,
+        senderLink: `${baseUrl}/manage/${result.noteId}/${result.senderToken}`,
+        noteId: result.noteId,
       });
       setShareVisible(true);
-    } catch (err) {
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Unknown error';
       console.error('Error creating note:', err);
-      Alert.alert('Error', 'Failed to create note. Please try again.');
+      setError(`Failed to create note: ${msg}`);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import * as Linking from 'expo-linking';
 import { colors } from '../config/theme';
 import CreateNoteScreen from '../screens/CreateNoteScreen';
 import ViewNoteScreen from '../screens/ViewNoteScreen';
@@ -14,9 +15,22 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const prefix = Linking.createURL('/');
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [prefix, 'leaveanote://', 'https://leaveanote.web.app'],
+  config: {
+    screens: {
+      CreateNote: '',
+      ViewNote: 'note/:noteId',
+      ManageNote: 'manage/:noteId/:token',
+    },
+  },
+};
+
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator
         initialRouteName="CreateNote"
         screenOptions={{
