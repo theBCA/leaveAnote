@@ -1,169 +1,78 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  Timestamp,
-  Unsubscribe
-} from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { db, storage } from '../config/firebase';
-import { NoteData, CreateNoteInput, NoteStatus } from '../types';
-import { generateUniqueId, generateToken } from '../utils/helpers';
-import { encryptMessage, decryptMessage } from '../utils/encryption';
+import { ApiError, apiRequest } from './apiClient';
+import { fromNoteApi, type CreateNoteResponse } from './noteTransform';
+import type { CreateNoteInput, NoteData } from '../types';
 
-const NOTES_COLLECTION = 'notes';
+interface NotePayload {
+  id: string;
+  message?: string;
+  unlockTime: string;
+  createdAt: string;
+  status: NoteData['status'];
+  timezone: string;
+  revealedAt?: string;
+  readAt?: string;
+  theme?: NoteData['theme'];
+  teaser?: string;
+  senderName?: string;
+}
 
-export async function createNote(input: CreateNoteInput): Promise<{
-  noteId: string;
-  senderToken: string;
-}> {
-  const noteId = generateUniqueId();
-  const senderToken = generateToken();
-  
-  // Encrypt the message
-  const encryptedMessage = await encryptMessage(input.message);
-  
-  // Upload files to Firebase Storage
-  const mediaUrls: string[] = [];
-  for (const file of input.files) {
-    const fileRef = ref(storage, `notes/${noteId}/${file.name}`);
-    await uploadBytes(fileRef, file);
-    const url = await getDownloadURL(fileRef);
-    mediaUrls.push(url);
+export async function createNote(input: CreateNoteInput): Promise<CreateNoteResponse> {
+  if (input.files.length > 0) {
+    throw new Error('Attachments are temporarily unavailable in the production-safe web release.');
   }
-  
-  // Create note document
-  const noteData: Omit<NoteData, 'id'> = {
-    message: encryptedMessage,
-    unlockTime: Timestamp.fromDate(input.unlockTime),
-    createdAt: Timestamp.now(),
-    status: 'pending',
-    senderToken,
-    mediaUrls,
-    timezone: input.timezone,
-  };
-  
-  await setDoc(doc(db, NOTES_COLLECTION, noteId), noteData);
-  
-  return { noteId, senderToken };
+
+  return apiRequest<CreateNoteResponse>('/api/notes', {
+    method: 'POST',
+    body: JSON.stringify({
+      message: input.message,
+      unlockTime: input.unlockTime.toISOString(),
+      timezone: input.timezone,
+      theme: input.theme,
+      teaser: input.teaser,
+      senderName: input.senderName,
+    }),
+  });
 }
 
 export async function getNote(noteId: string): Promise<NoteData | null> {
-  const noteDoc = await getDoc(doc(db, NOTES_COLLECTION, noteId));
-  
-  if (!noteDoc.exists()) {
-    return null;
+  try {
+    const payload = await apiRequest<NotePayload>(`/api/notes/${noteId}`);
+    return fromNoteApi(payload);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
-  
-  const data = noteDoc.data() as Omit<NoteData, 'id'>;
-  
-  // Decrypt the message
-  const decryptedMessage = await decryptMessage(data.message);
-  
-  return {
-    id: noteDoc.id,
-    ...data,
-    message: decryptedMessage,
-  };
 }
 
-export function subscribeToNote(
-  noteId: string, 
-  callback: (note: NoteData | null) => void
-): Unsubscribe {
-  return onSnapshot(doc(db, NOTES_COLLECTION, noteId), async (snapshot) => {
-    if (!snapshot.exists()) {
-      callback(null);
-      return;
-    }
-    
-    const data = snapshot.data() as Omit<NoteData, 'id'>;
-    const decryptedMessage = await decryptMessage(data.message);
-    
-    callback({
-      id: snapshot.id,
-      ...data,
-      message: decryptedMessage,
-    });
+export async function getManagedNote(noteId: string, token: string): Promise<NoteData> {
+  const payload = await apiRequest<NotePayload>(`/api/manage/${noteId}/${token}`);
+  return fromNoteApi(payload);
+}
+
+export async function markNoteRead(noteId: string): Promise<void> {
+  await apiRequest(`/api/notes/${noteId}/read`, {
+    method: 'POST',
+    body: JSON.stringify({}),
   });
 }
 
-export async function updateNoteStatus(
-  noteId: string, 
-  status: NoteStatus,
-  senderToken?: string
-): Promise<void> {
-  const updateData: Partial<NoteData> = { status };
-  
-  if (status === 'revealed') {
-    updateData.revealedAt = Timestamp.now();
-  } else if (status === 'read') {
-    updateData.readAt = Timestamp.now();
-  }
-  
-  await updateDoc(doc(db, NOTES_COLLECTION, noteId), updateData);
-}
-
-export async function updateNoteContent(
+export async function updateManagedNote(
   noteId: string,
-  senderToken: string,
+  token: string,
   message: string,
-  files: File[]
-): Promise<void> {
-  // Verify sender token
-  const note = await getNote(noteId);
-  if (!note || note.senderToken !== senderToken) {
-    throw new Error('Unauthorized');
-  }
-  
-  if (note.status !== 'pending') {
-    throw new Error('Cannot edit note that has been revealed');
-  }
-  
-  // Encrypt new message
-  const encryptedMessage = await encryptMessage(message);
-  
-  // Upload new files
-  const mediaUrls: string[] = [...note.mediaUrls];
-  for (const file of files) {
-    const fileRef = ref(storage, `notes/${noteId}/${file.name}`);
-    await uploadBytes(fileRef, file);
-    const url = await getDownloadURL(fileRef);
-    mediaUrls.push(url);
-  }
-  
-  await updateDoc(doc(db, NOTES_COLLECTION, noteId), {
-    message: encryptedMessage,
-    mediaUrls,
+): Promise<NoteData> {
+  const payload = await apiRequest<NotePayload>(`/api/manage/${noteId}/${token}`, {
+    method: 'PUT',
+    body: JSON.stringify({ message }),
   });
+  return fromNoteApi(payload);
 }
 
-export async function deleteNote(noteId: string, senderToken: string): Promise<void> {
-  // Verify sender token
-  const note = await getNote(noteId);
-  if (!note || note.senderToken !== senderToken) {
-    throw new Error('Unauthorized');
-  }
-  
-  // Delete media files
-  for (const url of note.mediaUrls) {
-    try {
-      const fileRef = ref(storage, url);
-      await deleteObject(fileRef);
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    }
-  }
-  
-  // Delete note document
-  await deleteDoc(doc(db, NOTES_COLLECTION, noteId));
-}
-
-export async function verifySenderToken(noteId: string, token: string): Promise<boolean> {
-  const note = await getNote(noteId);
-  return note?.senderToken === token;
+export async function deleteManagedNote(noteId: string, token: string): Promise<void> {
+  await apiRequest(`/api/manage/${noteId}/${token}`, {
+    method: 'DELETE',
+    body: JSON.stringify({}),
+  });
 }

@@ -1,30 +1,32 @@
-import { useState, useEffect, useCallback } from 'react';
-import { CountdownTime } from '../types';
+import { useEffect, useState } from 'react';
+import type { CountdownTime } from '../types';
 import { calculateCountdown } from '../utils/helpers';
 
+const expiredCountdown: CountdownTime = {
+  days: 0,
+  hours: 0,
+  minutes: 0,
+  seconds: 0,
+  isExpired: true,
+};
+
 export function useCountdown(targetDate: Date | undefined) {
-  const [countdown, setCountdown] = useState<CountdownTime>({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-    isExpired: false,
-  });
-  
-  const updateCountdown = useCallback(() => {
-    if (!targetDate) return;
-    const newCountdown = calculateCountdown(targetDate);
-    setCountdown(newCountdown);
-  }, [targetDate]);
-  
+  const [countdown, setCountdown] = useState<CountdownTime>(() => (
+    targetDate ? calculateCountdown(targetDate) : expiredCountdown
+  ));
+
   useEffect(() => {
-    if (!targetDate) return;
-    
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    
-    return () => clearInterval(interval);
-  }, [targetDate, updateCountdown]);
-  
+    if (!targetDate) {
+      const timeoutId = window.setTimeout(() => setCountdown(expiredCountdown), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    const interval = window.setInterval(() => {
+      setCountdown(calculateCountdown(targetDate));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [targetDate]);
+
   return countdown;
 }

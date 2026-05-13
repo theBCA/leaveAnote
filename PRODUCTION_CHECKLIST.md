@@ -1,0 +1,31 @@
+# Production Checklist
+
+- Install and deploy the `functions/` backend alongside hosting.
+- Install function dependencies with `npm run functions:install`.
+- Configure `OPENAI_API_KEY` as a Firebase Functions secret.
+- Enable Firebase Authentication and at least one sign-in method.
+- Install `invertase/firestore-stripe-payments` in the target Firebase project.
+- Configure the Stripe extension with the same collection names used by this repo.
+  - `customers`
+  - `products`
+- Create the Premium Stripe product and at least one recurring Stripe price.
+- Enable Stripe Customer Portal.
+- Register the Stripe webhook required by the extension and paste the signing secret into the extension config.
+- Verify Firestore rules and Storage rules are deployed from this repo.
+- Confirm `/api/**` hosting rewrites reach the `api` function.
+- Confirm the Stripe extension functions are live in the same project and region.
+- Run `npm run build`.
+- Run `npm run lint`.
+- Run `npm run test`.
+- Run `npm run test:functions`.
+- Validate these flows in a live Stripe/Firebase environment:
+  - sign up
+  - sign in
+  - load pricing page
+  - start Stripe Checkout
+  - return from success URL
+  - refresh premium status
+  - open Stripe Customer Portal
+  - generate AI message with an active subscription
+  - confirm AI is blocked for free users
+- Keep attachment uploads, location lock, and browser email sending disabled until secure backend handling is implemented.
