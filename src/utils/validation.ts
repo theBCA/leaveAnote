@@ -1,5 +1,3 @@
-import type { UploadedFile } from '../types';
-
 export interface ValidationResult {
   isValid: boolean;
   error?: string;
